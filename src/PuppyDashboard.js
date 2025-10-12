@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Dog, Utensils, Clock, AlertCircle, Calendar, Cloud } from 'lucide-react';
 import { db } from './firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 export default function PuppyDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -13,12 +13,11 @@ export default function PuppyDashboard() {
   const [weatherData, setWeatherData] = useState(null);
 
   const mainDocRef = doc(db, 'puppyData', 'main');
-
   const API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
 
+  // Real-time Firestore listener
   useEffect(() => {
-    const initDoc = async () => {
-      const docSnap = await getDoc(mainDocRef);
+    const unsubscribe = onSnapshot(mainDocRef, async (docSnap) => {
       if (!docSnap.exists()) {
         await setDoc(mainDocRef, { walks: [], meals: [] });
       } else {
@@ -26,22 +25,24 @@ export default function PuppyDashboard() {
         setWalks(data.walks || []);
         setMeals(data.meals || []);
       }
-    };
-    initDoc();
+    });
+    return () => unsubscribe();
   }, []);
 
+  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch weather every 10 minutes
   useEffect(() => {
     const fetchWeather = async () => {
+      if (!API_KEY) return;
       try {
         const res = await axios.get(
-           API_KEY ? `https://api.openweathermap.org/data/2.5/weather?q=Mölndal,se&appid=${API_KEY}&units=metric` : null
+          `https://api.openweathermap.org/data/2.5/weather?q=Mölndal,SE&appid=${API_KEY}&units=metric`
         );
-
         setWeatherData(res.data);
       } catch (err) {
         console.error('Failed to fetch weather:', err);
@@ -50,14 +51,14 @@ export default function PuppyDashboard() {
     fetchWeather();
     const interval = setInterval(fetchWeather, 10 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [API_KEY]);
 
+  // Show walk alert if last walk > 3h
   useEffect(() => {
-    if (walks.length > 0) {
-      const lastWalk = new Date(walks[walks.length - 1]);
-      const hoursSince = (currentTime - lastWalk) / (1000 * 60 * 60);
-      setShowWalkAlert(hoursSince >= 3);
-    } else setShowWalkAlert(false);
+    if (walks.length === 0) return setShowWalkAlert(false);
+    const lastWalk = new Date(walks[walks.length - 1]);
+    const hoursSince = (currentTime - lastWalk) / (1000 * 60 * 60);
+    setShowWalkAlert(hoursSince >= 3);
   }, [currentTime, walks]);
 
   const formatTime = (iso) =>
@@ -72,7 +73,6 @@ export default function PuppyDashboard() {
 
   const addWalk = async () => {
     const newWalks = [...walks, currentTime.toISOString()];
-    setWalks(newWalks);
     await updateDoc(mainDocRef, { walks: newWalks });
   };
 
@@ -80,11 +80,9 @@ export default function PuppyDashboard() {
     const input = prompt('Enter walk time (HH:mm:ss):');
     if (!input) return;
     const [h, m, s] = input.split(':').map(Number);
-    if (isNaN(h) || isNaN(m) || isNaN(s)) return alert('Invalid time!');
     const now = new Date();
     const custom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s);
     const newWalks = [...walks, custom.toISOString()];
-    setWalks(newWalks);
     await updateDoc(mainDocRef, { walks: newWalks });
   };
 
@@ -96,20 +94,17 @@ export default function PuppyDashboard() {
     const updated = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s);
     const updatedWalks = [...walks];
     updatedWalks[i] = updated.toISOString();
-    setWalks(updatedWalks);
     await updateDoc(mainDocRef, { walks: updatedWalks });
   };
 
   const deleteWalk = async (i) => {
     const updatedWalks = walks.filter((_, idx) => idx !== i);
-    setWalks(updatedWalks);
     await updateDoc(mainDocRef, { walks: updatedWalks });
   };
 
   const addMeal = async () => {
     if (meals.length >= 3) return;
     const newMeals = [...meals, currentTime.toISOString()];
-    setMeals(newMeals);
     await updateDoc(mainDocRef, { meals: newMeals });
   };
 
@@ -121,19 +116,15 @@ export default function PuppyDashboard() {
     const updated = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s);
     const updatedMeals = [...meals];
     updatedMeals[i] = updated.toISOString();
-    setMeals(updatedMeals);
     await updateDoc(mainDocRef, { meals: updatedMeals });
   };
 
   const deleteMeal = async (i) => {
     const updatedMeals = meals.filter((_, idx) => idx !== i);
-    setMeals(updatedMeals);
     await updateDoc(mainDocRef, { meals: updatedMeals });
   };
 
   const resetDay = async () => {
-    setWalks([]);
-    setMeals([]);
     await updateDoc(mainDocRef, { walks: [], meals: [] });
   };
 
