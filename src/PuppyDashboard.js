@@ -1,9 +1,12 @@
 // src/PuppyDashboard.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Dog, Utensils, Clock, AlertCircle, Calendar, Cloud } from 'lucide-react';
+import { 
+  Dog, Utensils, Clock, AlertCircle, Calendar, 
+  Sun, Cloud, CloudRain, CloudLightning, CloudSnow, CloudFog 
+} from 'lucide-react';
 import { db } from './firebase';
-import { doc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 export default function PuppyDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -15,13 +18,19 @@ export default function PuppyDashboard() {
   const mainDocRef = doc(db, 'puppyData', 'main');
   const API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
 
-  // Real-time Firestore listener
+  // Initialize or subscribe to Firestore
   useEffect(() => {
-    const unsubscribe = onSnapshot(mainDocRef, async (docSnap) => {
+    const initDoc = async () => {
+      const docSnap = await getDoc(mainDocRef);
       if (!docSnap.exists()) {
         await setDoc(mainDocRef, { walks: [], meals: [] });
-      } else {
-        const data = docSnap.data();
+      }
+    };
+    initDoc();
+
+    const unsubscribe = onSnapshot(mainDocRef, (snapshot) => {
+      const data = snapshot.data();
+      if (data) {
         setWalks(data.walks || []);
         setMeals(data.meals || []);
       }
@@ -29,7 +38,7 @@ export default function PuppyDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Update current time every second
+  // Update time every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -38,10 +47,10 @@ export default function PuppyDashboard() {
   // Fetch weather every 10 minutes
   useEffect(() => {
     const fetchWeather = async () => {
-      if (!API_KEY) return;
       try {
+        if (!API_KEY) return;
         const res = await axios.get(
-          `https://api.openweathermap.org/data/2.5/weather?q=Mölndal,SE&appid=${API_KEY}&units=metric`
+          `https://api.openweathermap.org/data/2.5/weather?q=Mölndal,se&appid=${API_KEY}&units=metric`
         );
         setWeatherData(res.data);
       } catch (err) {
@@ -51,14 +60,15 @@ export default function PuppyDashboard() {
     fetchWeather();
     const interval = setInterval(fetchWeather, 10 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [API_KEY]);
+  }, []);
 
-  // Show walk alert if last walk > 3h
+  // Walk alert logic
   useEffect(() => {
-    if (walks.length === 0) return setShowWalkAlert(false);
-    const lastWalk = new Date(walks[walks.length - 1]);
-    const hoursSince = (currentTime - lastWalk) / (1000 * 60 * 60);
-    setShowWalkAlert(hoursSince >= 3);
+    if (walks.length > 0) {
+      const lastWalk = new Date(walks[walks.length - 1]);
+      const hoursSince = (currentTime - lastWalk) / (1000 * 60 * 60);
+      setShowWalkAlert(hoursSince >= 3);
+    } else setShowWalkAlert(false);
   }, [currentTime, walks]);
 
   const formatTime = (iso) =>
@@ -80,6 +90,7 @@ export default function PuppyDashboard() {
     const input = prompt('Enter walk time (HH:mm:ss):');
     if (!input) return;
     const [h, m, s] = input.split(':').map(Number);
+    if (isNaN(h) || isNaN(m) || isNaN(s)) return alert('Invalid time!');
     const now = new Date();
     const custom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s);
     const newWalks = [...walks, custom.toISOString()];
@@ -128,6 +139,21 @@ export default function PuppyDashboard() {
     await updateDoc(mainDocRef, { walks: [], meals: [] });
   };
 
+  // Dynamic weather icon
+  const getWeatherIcon = (main) => {
+    switch (main) {
+      case 'Clear': return <Sun className="w-6 h-6 text-yellow-400" />;
+      case 'Clouds': return <Cloud className="w-6 h-6 text-gray-400" />;
+      case 'Rain':
+      case 'Drizzle': return <CloudRain className="w-6 h-6 text-cyan-400" />;
+      case 'Thunderstorm': return <CloudLightning className="w-6 h-6 text-purple-400" />;
+      case 'Snow': return <CloudSnow className="w-6 h-6 text-white" />;
+      case 'Mist':
+      case 'Fog': return <CloudFog className="w-6 h-6 text-gray-400" />;
+      default: return <Cloud className="w-6 h-6 text-cyan-400" />;
+    }
+  };
+
   return (
     <div className="min-h-screen w-screen bg-[#121212] text-white p-4 md:p-8 overflow-y-auto flex flex-col">
       <div className="flex-grow w-full space-y-6">
@@ -163,8 +189,8 @@ export default function PuppyDashboard() {
           </div>
 
           <div className="bg-[#121212] border border-white/70 p-6 flex flex-col items-center">
-            <Cloud className="w-6 h-6 mb-2 text-cyan-400" />
-            <h2 className="font-semibold">Weather</h2>
+            {weatherData ? getWeatherIcon(weatherData.weather[0].main) : <Cloud className="w-6 h-6 text-cyan-400" />}
+            <h2 className="font-semibold mt-2">Weather</h2>
             {weatherData ? (
               <>
                 <p className="text-2xl font-bold text-white">{Math.round(weatherData.main.temp)}°C</p>
