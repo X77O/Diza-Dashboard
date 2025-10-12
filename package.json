@@ -2,7 +2,7 @@
   "name": "diza-dashboard",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://X77O.github.io/diza-dashboard",
+  "homepage": "https://x77o.github.io/diza-dashboard",
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
