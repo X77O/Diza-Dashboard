@@ -14,6 +14,8 @@ export default function PuppyDashboard() {
 
   const mainDocRef = doc(db, 'puppyData', 'main');
 
+  const API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
+
   useEffect(() => {
     const initDoc = async () => {
       const docSnap = await getDoc(mainDocRef);
@@ -37,8 +39,9 @@ export default function PuppyDashboard() {
     const fetchWeather = async () => {
       try {
         const res = await axios.get(
-          'https://api.openweathermap.org/data/2.5/weather?q=Mölndal,SE&units=metric&appid=8ed355dd55f959fb0ec66d7d83b9852c'
+           API_KEY ? `https://api.openweathermap.org/data/2.5/weather?q=Mölndal,se&appid=${API_KEY}&units=metric` : null
         );
+
         setWeatherData(res.data);
       } catch (err) {
         console.error('Failed to fetch weather:', err);
