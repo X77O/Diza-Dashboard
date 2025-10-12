@@ -1,183 +1,157 @@
-/* App.css */
+/* App.css - Redesigned for full-screen dashboard */
 
-body, html {
+/* Reset */
+body, html, #root {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  background-color: #010101; /* almost fully black */
+  height: 100%;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #121212;
   color: white;
 }
 
-.dashboard {
-  min-height: 100vh;
-  padding: 1rem 2rem;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/* Header */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 3px solid white;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  background-color: #111111;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.header-left h1 {
-  margin: 0;
-  font-size: 2rem;
-}
-
-.header-left p {
-  margin: 0;
-  color: #aaa;
-  font-size: 1rem;
-}
-
-.btn-reset {
-  border: 3px solid white;
-  background-color: #111111;
-  padding: 0.5rem 1.5rem;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-reset:hover {
-  background-color: #222222;
-}
-
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.card-time,
-.card-date,
-.card-weather {
-  border: 3px solid white;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-time p,
-.card-date p,
-.card-weather p {
-  margin: 0.5rem 0;
-}
-
-.card-time p {
-  font-size: clamp(2rem, 6vw, 5rem);
-  font-weight: bold;
-  text-align: center;
-}
-
-/* Main Stats */
-.main-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-
-@media (min-width: 1024px) {
-  .main-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.card-walks,
-.card-meals {
-  border: 3px solid white;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.walk-counter,
-.meal-counter {
-  border: 3px solid white;
-  padding: 0.5rem 1rem;
-  font-weight: bold;
-  text-align: center;
-}
-
-.walk-list .walk-item {
-  border: 2px solid white;
+/* Card base style */
+.card {
+  background-color: #121212;
+  border: 2px solid rgba(255,255,255,0.7);
   padding: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.meal-icons {
   display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.meal-icon {
-  border: 2px solid white;
-  padding: 0.75rem;
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Text inside cards */
+.card-text {
+  font-size: clamp(0.8rem, 2vw, 1.2rem);
+  font-weight: bold;
+  text-align: center;
+  margin: 0.2rem 0;
 }
 
 /* Buttons */
-.btn-add-walk,
-.btn-add-meal {
-  border: 3px solid white;
-  padding: 0.5rem;
-  font-weight: bold;
-  width: 100%;
+.button {
+  font-size: clamp(0.7rem, 1.5vw, 1rem);
+  padding: 0.25rem 0.5rem;
+  border: 2px solid rgba(255,255,255,0.7);
+  background: transparent;
+  color: white;
   cursor: pointer;
-  background-color: #111111;
+  box-sizing: border-box;
 }
 
-.btn-add-walk:hover,
-.btn-add-meal:hover {
-  background-color: #222222;
+.button:hover {
+  background-color: rgba(255,255,255,0.1);
 }
 
-.btn-add-meal:disabled {
-  background-color: #111111;
+.button:disabled {
+  background-color: #111;
   color: #555;
   cursor: not-allowed;
 }
 
-/* Walk Alert */
+/* Walk alert */
 .walk-alert {
-  border: 3px solid white;
-  padding: 1rem;
-  background-color: #111111;
+  border: 2px solid rgba(255,255,0,0.7);
+  background-color: rgba(255,255,0,0.2);
+  color: #FFD700;
+  padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  bottom: 1rem;
+  right: 1rem;
+  box-sizing: border-box;
+  font-weight: bold;
+  max-width: 300px;
+}
+
+/* Meal icon container */
+.meal-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255,255,255,0.7);
+  padding: 0.3rem;
+  gap: 0.2rem;
+  box-sizing: border-box;
+}
+
+/* Meal icon size */
+.meal-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Flex helpers */
+.flex-1 {
+  flex: 1;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+/* Responsive layout */
+@media (min-width: 768px) {
+  .flex-wrap {
+    flex-wrap: nowrap;
+  }
+}
+
+/* Smaller card text for lists */
+.card .card-text.text-sm {
+  font-size: clamp(0.6rem, 1.5vw, 0.9rem);
+}
+
+/* Walk/meal list items inside cards */
+.card > div > div {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  padding: 0.2rem 0;
+  box-sizing: border-box;
+}
+
+/* Central "Next Walk" card */
+.card-next-walk {
+  width: 100%;
+  border: 2px solid rgba(255,255,255,0.7);
+  background-color: #121212;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  font-weight: bold;
+  margin: 0.5rem 0;
 }
