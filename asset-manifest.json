@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "./static/css/main.6b5a2363.css",
-    "main.js": "./static/js/main.1fc6d964.js",
-    "static/js/453.aa56ee78.chunk.js": "./static/js/453.aa56ee78.chunk.js",
-    "index.html": "./index.html",
-    "main.6b5a2363.css.map": "./static/css/main.6b5a2363.css.map",
-    "main.1fc6d964.js.map": "./static/js/main.1fc6d964.js.map",
-    "453.aa56ee78.chunk.js.map": "./static/js/453.aa56ee78.chunk.js.map"
+    "main.css": "/Diza-Dashboard/static/css/main.6b5a2363.css",
+    "main.js": "/Diza-Dashboard/static/js/main.731df565.js",
+    "static/js/453.aa56ee78.chunk.js": "/Diza-Dashboard/static/js/453.aa56ee78.chunk.js",
+    "index.html": "/Diza-Dashboard/index.html",
+    "main.6b5a2363.css.map": "/Diza-Dashboard/static/css/main.6b5a2363.css.map",
+    "main.731df565.js.map": "/Diza-Dashboard/static/js/main.731df565.js.map",
+    "453.aa56ee78.chunk.js.map": "/Diza-Dashboard/static/js/453.aa56ee78.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.6b5a2363.css",
-    "static/js/main.1fc6d964.js"
+    "static/js/main.731df565.js"
   ]
 }
