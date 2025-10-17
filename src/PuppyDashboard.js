@@ -48,8 +48,8 @@ export default function PuppyDashboard() {
     const LON = 12.03;
 
     // Use current time for date logic to be accurate 
-    // The current time is 09:04:45 AM on Friday, October 17, 2025 (based on context)
-    const today = new Date(2025, 9, 17, 9, 4, 45); // Note: Month is 0-indexed (9 is October)
+    // The current time is 09:12:45 AM on Friday, October 17, 2025 (based on context)
+    const today = new Date(2025, 9, 17, 9, 12, 45); // Note: Month is 0-indexed (9 is October)
     const todayStr = today.toDateString();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
@@ -386,6 +386,25 @@ export default function PuppyDashboard() {
         const current = snap.exists() ? snap.data().snacks || [] : [];
         await handleAction({ snacks: [...current, newSnack] }, true);
     };
+    
+    // FIX: Add custom snack function for consistency
+    const addCustomSnack = async () => {
+        const timeInput = prompt('Enter snack time (HH:mm:ss):');
+        if (!timeInput) return;
+        const type = prompt('Enter snack type:');
+        if (!type) return;
+        const qty = prompt('Enter quantity:');
+        if (!qty || isNaN(parseInt(qty)) || parseInt(qty) <= 0) return alert('Invalid quantity!');
+
+        const [h, m, s] = timeInput.split(':').map(Number);
+        const now = new Date();
+        const customTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m||0, s||0).toISOString();
+        
+        const newSnack = { time: customTime, type, quantity: parseInt(qty) };
+        const snap = await getDoc(await getDocRefForDate(selectedDate));
+        const current = snap.exists() ? snap.data().snacks || [] : [];
+        await handleAction({ snacks: [...current, newSnack] }, true);
+    };
 
     const editEntry = async (i, type, promptMsg, updateFn) => {
         const docRef = await getDocRefForDate(selectedDate);
@@ -678,8 +697,12 @@ export default function PuppyDashboard() {
                             ))}
                             {snacks.length === 0 && <p className="text-center text-gray-400 mt-1 text-[0.6rem] lg:text-base">No snacks logged for this day.</p>}
                         </div>
+                        {/* FIX: Change to two buttons for consistency and visibility */}
                         {(!isHistoryMode || editMode) && (
-                            <button onClick={addSnack} className="button mt-1 pt-1 border-t border-white/20 bg-orange-700 hover:bg-orange-600 text-[0.6rem] lg:text-sm flex-shrink-0 p-1">Add Snack</button>
+                            <div className="flex gap-0.5 mt-1 pt-1 border-t border-white/20 flex-shrink-0">
+                                <button onClick={addSnack} className="button flex-1 bg-orange-700 hover:bg-orange-600 text-[0.6rem] lg:text-sm p-1">Add Snack Now</button>
+                                <button onClick={addCustomSnack} className="button flex-1 text-[0.6rem] lg:text-sm p-1">Add Custom Snack</button>
+                            </div>
                         )}
                     </div>
                 </div>
