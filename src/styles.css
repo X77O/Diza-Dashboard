@@ -5,71 +5,79 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base Styles: For a clean start and universal black background */
-body, html, #root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* Universal Black Background */
-  background-color: #000000; 
+/* ------------------------------------ */
+/* Puppy Dashboard Layout (Tailwind mix) */
+/* ------------------------------------ */
+
+.dashboard-container {
+  @apply flex flex-col w-full min-h-screen bg-black text-white p-2;
+}
+
+.dashboard-grid {
+  @apply flex flex-col lg:flex-row gap-2 flex-1 min-h-0;
+}
+
+.dashboard-card {
+  @apply flex-1 flex flex-col border border-white/20 p-2 bg-black rounded-lg min-h-0;
   overflow: hidden;
-  color: #ffffff; /* Ensure global text color is white */
 }
 
-/* Reusable Button Style: Black background and white text */
-.button {
-  background-color: #000000; 
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2); 
-  border-radius: 0; 
-  padding: 6px 12px;
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
-  text-align: center;
-  font-size: 0.875rem;
-  line-height: 1.25;
+.dashboard-card-title {
+  @apply font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0;
 }
 
-.button:hover {
-  background-color: #1f2937; /* Very dark gray on hover for feedback */
-  border-color: rgba(255, 255, 255, 0.4);
+.dashboard-scroll-area {
+  @apply flex-1 overflow-y-auto min-h-0;
+  scrollbar-width: thin;
 }
 
-/* Specific Style for the 'Time for a walk!' Alert */
-.walk-due-alert {
-  animation: walkFlash 1.5s infinite alternate;
-  font-weight: bold;
+.dashboard-entry {
+  @apply flex items-center justify-between mb-0.5 text-sm lg:text-base p-0.5 border-b border-white/10 last:border-b-0;
 }
 
-@keyframes walkFlash {
-  0% {
-    opacity: 0.3;
+.dashboard-buttons {
+  @apply flex gap-1 flex-shrink-0;
+}
+
+.btn-small {
+  @apply flex items-center justify-center border border-white/40 rounded bg-white/10 hover:bg-white/20 p-0 w-4 h-4 text-xs;
+}
+
+.dashboard-bottom-buttons {
+  @apply flex gap-1 mt-1 pt-1 border-t border-white/20 flex-shrink-0;
+}
+
+.btn-main {
+  @apply flex-1 bg-green-700 hover:bg-green-600 text-white text-[0.6rem] lg:text-sm p-1 rounded;
+}
+
+.btn-secondary {
+  @apply flex-1 bg-white/10 hover:bg-white/20 text-white text-[0.6rem] lg:text-sm p-1 rounded;
+}
+
+.empty-text {
+  @apply text-center text-gray-400 mt-1 text-[0.6rem] lg:text-base;
+}
+
+/* ------------------------------------ */
+/* 🧡 Mobile layout – Scrollable version */
+/* ------------------------------------ */
+@media (max-width: 768px) {
+  .dashboard-container {
+    height: 100vh;
+    overflow-y: auto;
+    display: block;
   }
-  100% {
-    opacity: 1;
+
+  .dashboard-grid {
+    display: block;
   }
-}
 
-/* Scrollbar styling for a cleaner dark mode look */
-.overflow-auto::-webkit-scrollbar,
-.overflow-y-auto::-webkit-scrollbar {
-  width: 8px;
-}
+  .dashboard-card {
+    margin-bottom: 1rem;
+  }
 
-.overflow-auto::-webkit-scrollbar-track,
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #000000; 
-}
-
-.overflow-auto::-webkit-scrollbar-thumb,
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #1f2937; /* Very dark gray thumb */
-  border-radius: 0;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb:hover,
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #374151; 
+  .dashboard-bottom-buttons {
+    position: static;
+  }
 }
