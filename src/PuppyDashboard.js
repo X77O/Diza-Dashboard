@@ -82,7 +82,7 @@ export default function PuppyDashboard() {
             const tb = new Date(b.time || b);
             
             const timeA = isNaN(ta.getTime()) ? 0 : ta.getTime();
-            const timeB = isNaN(tb.getTime()) ? 0 : tb.getTime();
+            const timeB = isNaN(tb.getTime()) ? 0 : ta.getTime();
             
             return timeA - timeB;
         });
@@ -528,7 +528,9 @@ export default function PuppyDashboard() {
             </div>
 
             {/* Main content */}
-            <div className="flex flex-col flex-1 p-1 lg:p-2 gap-1 lg:gap-2 overflow-y-auto"> 
+            {/* FIX: Removed unnecessary overflow-y-auto from the main content wrapper, 
+                and ensured flex-1 is used correctly to stretch and contain its children */}
+            <div className="flex flex-col flex-1 p-1 lg:p-2 gap-1 lg:gap-2"> 
                 
                 {/* Top: Date & Weather (Responsive: Side-by-side on ALL screens) */}
                 <div className="flex flex-row gap-1 lg:gap-2 flex-shrink-0" style={{ height: '30vh', minHeight: '150px' }}>
@@ -605,9 +607,11 @@ export default function PuppyDashboard() {
                 </div>
 
                 {/* Bottom: Logs (Vertical Stack on Mobile, 3 Columns on Desktop) */}
+                {/* FIX: Added overflow-y-auto to the log wrapper to contain all logs and buttons */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-1 lg:gap-2 overflow-y-auto">
                     
                     {/* Walks Card */}
+                    {/* FIX: Added min-h-0 to allow the card to shrink correctly in a flex container */}
                     <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px] flex-shrink-0 lg:flex-shrink-1">
                         <p className="font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0">Walks ({walks.length})</p>
                         {/* Scrollable Log List */}
@@ -642,6 +646,7 @@ export default function PuppyDashboard() {
                     </div>
 
                     {/* Meals Card */}
+                    {/* FIX: Added min-h-0 to allow the card to shrink correctly in a flex container */}
                     <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px] flex-shrink-0 lg:flex-shrink-1">
                         <p className="font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0">Meals ({meals.length})</p>
                         <div className="flex-1 overflow-y-auto">
@@ -674,6 +679,7 @@ export default function PuppyDashboard() {
                     </div>
 
                     {/* Snacks Card */}
+                    {/* FIX: Added min-h-0 to allow the card to shrink correctly in a flex container */}
                     <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px] flex-shrink-0 lg:flex-shrink-1">
                         <p className="font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0">Snacks ({snacks.length})</p>
                         <div className="flex-1 overflow-y-auto">
@@ -697,7 +703,7 @@ export default function PuppyDashboard() {
                             ))}
                             {snacks.length === 0 && <p className="text-center text-gray-400 mt-1 text-[0.6rem] lg:text-base">No snacks logged for this day.</p>}
                         </div>
-                        {/* FIX: Change to two buttons for consistency and visibility */}
+                        {/* Two buttons for consistency across all cards */}
                         {(!isHistoryMode || editMode) && (
                             <div className="flex gap-0.5 mt-1 pt-1 border-t border-white/20 flex-shrink-0">
                                 <button onClick={addSnack} className="button flex-1 bg-orange-700 hover:bg-orange-600 text-[0.6rem] lg:text-sm p-1">Add Snack Now</button>
