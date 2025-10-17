@@ -1,0 +1,75 @@
+/* src/styles.css */
+
+/* --- Tailwind Directives (Crucial for all Tailwind classes to work) --- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Styles: For a clean start and universal black background */
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Universal Black Background */
+  background-color: #000000; 
+  overflow: hidden;
+  color: #ffffff; /* Ensure global text color is white */
+}
+
+/* Reusable Button Style: Black background and white text */
+.button {
+  background-color: #000000; 
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2); 
+  border-radius: 0; 
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.button:hover {
+  background-color: #1f2937; /* Very dark gray on hover for feedback */
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Specific Style for the 'Time for a walk!' Alert */
+.walk-due-alert {
+  animation: walkFlash 1.5s infinite alternate;
+  font-weight: bold;
+}
+
+@keyframes walkFlash {
+  0% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Scrollbar styling for a cleaner dark mode look */
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-auto::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #000000; 
+}
+
+.overflow-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #1f2937; /* Very dark gray thumb */
+  border-radius: 0;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #374151; 
+}
