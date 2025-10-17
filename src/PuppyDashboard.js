@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Utensils, Cloud, Bone, CalendarDays, PawPrint, Edit } from 'lucide-react'; 
+import { Utensils, Bone, CalendarDays, PawPrint, Edit } from 'lucide-react'; 
 import { db } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, collection as firestoreCollection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
 
@@ -28,7 +28,6 @@ export default function PuppyDashboard() {
     const [snacks, setSnacks] = useState([]);
     const [weatherData, setWeatherData] = useState(null);
 
-    // Initial state changed to null to clearly indicate "loading"
     const [availableDates, setAvailableDates] = useState(null); 
     const [lastVisibleDate, setLastVisibleDate] = useState(null);
     const [hasMoreHistory, setHasMoreHistory] = useState(true);
@@ -42,14 +41,12 @@ export default function PuppyDashboard() {
     const mainDocRef = doc(db, collectionName, 'main');
     const historyCollectionRef = firestoreCollection(db, collectionName);
     
-    // --- IMPORTANT: Ensure this API key variable is available via .env in your project root ---
     const API_KEY = process.env.REACT_APP_WEATHER_API_KEY; 
     
     // Coordinates for Mölndal, SE
     const LAT = 57.65;
     const LON = 12.03;
 
-    // Dates must be defined here to reflect the current moment
     const today = new Date();
     const todayStr = today.toDateString();
     const yesterday = new Date(today);
@@ -59,9 +56,21 @@ export default function PuppyDashboard() {
     // --- Helpers ---
     const formatTime = (t) => {
         if (!t) return '';
-        const d = typeof t === 'string' ? new Date(t) : new Date(t.time || t);
-        return isNaN(d.getTime()) ? String(t) : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        const timeValue = t.time || t;
+        
+        if (!timeValue || typeof timeValue !== 'string') return ''; 
+
+        const d = new Date(timeValue);
+        
+        if (isNaN(d.getTime())) {
+             console.error("Invalid date value found:", timeValue);
+             return 'Error Time'; 
+        }
+
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
+    
     const formatDate = (d) =>
         d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -69,14 +78,18 @@ export default function PuppyDashboard() {
         return arr.slice().sort((a,b) => {
             const ta = new Date(a.time || a);
             const tb = new Date(b.time || b);
-            return ta - tb;
+            
+            const timeA = isNaN(ta.getTime()) ? 0 : ta.getTime();
+            const timeB = isNaN(tb.getTime()) ? 0 : tb.getTime();
+            
+            return timeA - timeB;
         });
     };
 
     const getDocRefForDate = async (date) => {
         const dateKey = date.toDateString() === todayStr 
             ? 'main'
-            : date.toISOString().split('T')[0];
+            : date.toISOString().split('T')[0]; // Format is YYYY-MM-DD
             
         const docRef = doc(db, collectionName, dateKey);
         
@@ -88,6 +101,33 @@ export default function PuppyDashboard() {
         return docRef;
     };
 
+    // NEW: Function to archive the previous day's data from 'main'
+    const archivePreviousDay = useCallback(async (previousDay) => {
+        const previousDayKey = previousDay.toISOString().split('T')[0];
+        const previousDocRef = doc(db, collectionName, previousDayKey);
+        
+        const mainSnap = await getDoc(mainDocRef);
+        if (!mainSnap.exists()) return;
+
+        const mainData = mainSnap.data();
+        
+        // Check if there is data to save and if the historical document doesn't already exist
+        if ((mainData.walks?.length || mainData.meals?.length || mainData.snacks?.length) && !(await getDoc(previousDocRef)).exists()) {
+            console.log(`Archiving data from 'main' to history document: ${previousDayKey}`);
+            
+            // Save data to the historical document
+            await setDoc(previousDocRef, mainData);
+
+            // Clear the 'main' document for the new day
+            await setDoc(mainDocRef, { walks: [], meals: [], snacks: [] });
+
+            // Refresh the history dates to include the newly created document
+            loadHistoryDates(true);
+        } else {
+            console.log("No data to archive or historical document already exists.");
+        }
+    }, [mainDocRef, historyCollectionRef]);
+
 
     // =========================================================================
     // --- Weather Data Fetching ---
@@ -95,7 +135,6 @@ export default function PuppyDashboard() {
     useEffect(() => {
         if (!API_KEY) {
             console.error("OpenWeatherMap API Key is missing. Check your .env file.");
-            // Optionally set a friendly error message in state here
             return;
         }
 
@@ -106,16 +145,14 @@ export default function PuppyDashboard() {
                 setWeatherData(response.data);
             } catch (error) {
                 console.error("Error fetching weather data:", error);
-                // Set an empty object or specific error state to stop "Loading..."
                 setWeatherData({}); 
             }
         };
 
-        // Fetch immediately and then set an interval for updates (e.g., every 10 minutes)
         fetchWeather();
-        const intervalId = setInterval(fetchWeather, 600000); // 10 minutes (10 * 60 * 1000 ms)
+        const intervalId = setInterval(fetchWeather, 600000); 
 
-        return () => clearInterval(intervalId); // Cleanup on unmount
+        return () => clearInterval(intervalId); 
     }, [API_KEY]); 
 
     // =========================================================================
@@ -181,7 +218,7 @@ export default function PuppyDashboard() {
 
 
     // =========================================================================
-    // --- Clock & Auto-Update ---
+    // --- Clock & Auto-Update (Now includes Archiving) ---
     // =========================================================================
     useEffect(() => {
         let lastDay = new Date().getDate();
@@ -190,7 +227,14 @@ export default function PuppyDashboard() {
             setCurrentTime(now);
 
             if (now.getDate() !== lastDay) {
-                console.log("Day changed. Reloading 'Today' page.");
+                console.log("Day changed. Archiving previous day's data and reloading 'Today' page.");
+                
+                const previousDay = new Date(now);
+                previousDay.setDate(now.getDate() - 1);
+                
+                // CRITICAL: Archive data *before* setting the date to 'now'
+                archivePreviousDay(previousDay); 
+                
                 setSelectedDate(now);
                 loadHistoryDates(true); 
                 lastDay = now.getDate();
@@ -198,8 +242,7 @@ export default function PuppyDashboard() {
         }, 1000);
         
         return () => clearInterval(t);
-    }, [loadHistoryDates]); 
-
+    }, [loadHistoryDates, archivePreviousDay]); // Dependency added
 
     // --- Initial History Load ---
     useEffect(() => {
@@ -231,7 +274,6 @@ export default function PuppyDashboard() {
         }
 
         setIsHistoryMode(true);
-        // Firestore document IDs are YYYY-MM-DD
         const dateKey = date.toISOString().split('T')[0];
         const dateDocRef = doc(db, collectionName, dateKey);
         const snap = await getDoc(dateDocRef);
@@ -241,7 +283,6 @@ export default function PuppyDashboard() {
             setMeals(data.meals || []);
             setSnacks(data.snacks || []);
         } else {
-            // If historical date document doesn't exist, show empty log
             setWalks([]);
             setMeals([]);
             setSnacks([]);
@@ -271,7 +312,6 @@ export default function PuppyDashboard() {
     const handleAction = async (updateData, isNewDoc = false) => {
         const docRef = await getDocRefForDate(selectedDate);
         await updateDoc(docRef, updateData);
-        // If a new historical document was created (not 'main'), refresh the history list
         if (isNewDoc && selectedDate.toDateString() !== todayStr) {
             loadHistoryDates(true); 
         }
@@ -301,6 +341,23 @@ export default function PuppyDashboard() {
         const weight = prompt('Enter the weight (grams):');
         if (weight === null || isNaN(parseInt(weight)) || parseInt(weight) <= 0) return alert('Invalid weight!');
         const newMeal = { time: new Date().toISOString(), weight: parseInt(weight) };
+        const snap = await getDoc(await getDocRefForDate(selectedDate));
+        const current = snap.exists() ? snap.data().meals || [] : [];
+        await handleAction({ meals: [...current, newMeal] }, true);
+    };
+    
+    // NEW: Custom Meal Handler
+    const addCustomMeal = async () => {
+        const timeInput = prompt('Enter meal time (HH:mm:ss):');
+        if (!timeInput) return;
+        const weightInput = prompt('Enter the weight (grams):');
+        if (weightInput === null || isNaN(parseInt(weightInput)) || parseInt(weightInput) <= 0) return alert('Invalid weight!');
+
+        const [h, m, s] = timeInput.split(':').map(Number);
+        const now = new Date();
+        const customTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m||0, s||0).toISOString();
+        
+        const newMeal = { time: customTime, weight: parseInt(weightInput) };
         const snap = await getDoc(await getDocRefForDate(selectedDate));
         const current = snap.exists() ? snap.data().meals || [] : [];
         await handleAction({ meals: [...current, newMeal] }, true);
@@ -375,6 +432,9 @@ export default function PuppyDashboard() {
         if (!walks.length) return 'Add first walk';
         const last = new Date(walks[walks.length-1].time || walks[walks.length-1]);
         const next = new Date(last.getTime() + 3 * 60 * 60 * 1000);
+        
+        if (isNaN(last.getTime())) return 'Time calculation error';
+        
         return next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
 
@@ -383,6 +443,9 @@ export default function PuppyDashboard() {
         if (isHistoryMode) return false;
         if (!walks.length) return true;
         const last = new Date(walks[walks.length-1].time || walks[walks.length-1]);
+        
+        if (isNaN(last.getTime())) return true; // If last walk time is invalid, assume due
+
         const hours = (currentTime - last) / (1000 * 60 * 60);
         return hours >= 3;
     };
@@ -403,17 +466,14 @@ export default function PuppyDashboard() {
                 
                 <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 100px)' }}>
                     
-                    {/* Check if loading */}
                     {availableDates === null && (
                         <p className="p-2 text-center text-gray-500">Loading history...</p>
                     )}
 
-                    {/* Check if loaded and empty (should rarely happen since today is always added) */}
                     {availableDates !== null && availableDates.length === 0 && (
                         <p className="p-2 text-center text-gray-500">No past logs found.</p>
                     )}
                     
-                    {/* Display Dates */}
                     {availableDates !== null && availableDates.map((d) => (
                         <div
                             key={d}
@@ -423,12 +483,10 @@ export default function PuppyDashboard() {
                                 setIsSidebarOpen(false);
                             }}
                         >
-                            {/* Check if date is Today or Yesterday for better display */}
                             {d === todayStr ? 'TODAY' : d === yesterdayStr ? 'YESTERDAY' : d}
                         </div>
                     ))}
                     
-                    {/* Only show Load More if there are potentially more documents to load */}
                     {hasMoreHistory && availableDates !== null && availableDates.length > 0 && (
                          <div className="p-2 pt-2">
                             <button onClick={() => loadHistoryDates(false)} className="button w-full">
@@ -444,48 +502,40 @@ export default function PuppyDashboard() {
                 {/* Top: Date & Weather (Height set to flex-grow with max height) */}
                 <div className="flex-1 flex gap-2" style={{ maxHeight: '45%' }}>
                     
-                    {/* Clock / Date Display (Border: border border-white/20) */}
+                    {/* Clock / Date Display */}
                     <div className="flex-1 flex flex-col justify-center border border-white/20 p-4 text-center bg-black">
                         {isHistoryMode ? (
-                            // Increased history mode font size
                             <p className="text-[clamp(1.5rem,8vw,3rem)] font-bold text-yellow-400">
                                 Viewing history for {formatDate(selectedDate)}
                             </p>
                         ) : (
                             <>
-                                {/* Increased clock font size */}
                                 <p className="text-[clamp(3rem,12vw,6rem)] font-bold">{currentTime.toLocaleTimeString()}</p>
-                                {/* Increased date font size */}
                                 <p className="text-[clamp(1.5rem,6vw,2.5rem)] text-gray-300">{formatDate(currentTime)}</p>
                             </>
                         )}
                     </div>
                     
-                    {/* Weather Card (Mölndal) (Border: border border-white/20) */}
+                    {/* Weather Card (Mölndal) */}
                     <div className="flex-1 flex flex-col justify-center border border-white/20 p-4 text-center bg-black">
                         <p className="text-[clamp(1rem,4vw,1.5rem)] mb-2 font-semibold">Mölndal, SE</p>
                         <div className="flex items-center justify-center gap-4 mb-2">
-                            {/* Increased emoji size significantly */}
                             <p className="text-[clamp(3rem,12vw,7rem)]"> 
                                 {weatherData && weatherData.weather ? getWeatherEmoji(weatherData.weather[0].icon) : '❓'}
                             </p>
-                            {/* Increased temperature font size significantly */}
                             <p className="text-[clamp(2rem,10vw,5rem)] font-bold">
                                 {weatherData && weatherData.main ? `${Math.round(weatherData.main.temp)}°C` : 'Loading...'}
                             </p>
                         </div>
-                        {/* Increased description font size */}
                         {weatherData && weatherData.weather && <p className="capitalize text-[clamp(1rem,4vw,1.5rem)] text-gray-300">{weatherData.weather[0].description}</p>}
                         
-                        {/* Increased details font size */}
                         {weatherData && weatherData.main && <p className="text-[clamp(0.9rem,3vw,1.2rem)] text-gray-400 mt-1">Hum: {weatherData.main.humidity}% | Wind: {weatherData.wind.speed} m/s</p>}
                         
-                        {/* Show an error if weatherData is an empty object (from the catch block) */}
                         {weatherData === {} && <p className="text-red-400 text-sm">Error loading weather.</p>}
                     </div>
                 </div>
 
-                {/* Middle: Next Walk Alert / Controls (Border: border border-white/20) */}
+                {/* Middle: Next Walk Alert / Controls */}
                 <div className="flex items-center justify-between p-3 border border-white/20 text-xl bg-black" style={{ flex: '0 0 auto' }}>
                     
                     {/* Left Control Group (Calendar & Edit) */}
@@ -516,9 +566,9 @@ export default function PuppyDashboard() {
                     )}
                 </div>
 
-                {/* Bottom: Walks, Meals, Snacks (Log Cards) - Height set to flex-grow with max height */}
+                {/* Bottom: Walks, Meals, Snacks (Log Cards) */}
                 <div className="flex-1 flex gap-2 overflow-hidden" style={{ maxHeight: '50%' }}>
-                    {/* Walks Card (UPDATED BORDER: border border-white/20) */}
+                    {/* Walks Card (Unified Border) */}
                     <div className="flex-1 flex flex-col border border-white/20 p-2 overflow-hidden bg-black">
                         <p className="font-bold mb-2 text-center text-xl border-b border-white/20 pb-1">Walks ({walks.length})</p>
                         <div className="flex-1 overflow-y-auto">
@@ -546,7 +596,7 @@ export default function PuppyDashboard() {
                         )}
                     </div>
 
-                    {/* Meals Card (UPDATED BORDER: border border-white/20) */}
+                    {/* Meals Card (Unified Border) */}
                     <div className="flex-1 flex flex-col border border-white/20 p-2 overflow-hidden bg-black">
                         <p className="font-bold mb-2 text-center text-xl border-b border-white/20 pb-1">Meals ({meals.length})</p>
                         <div className="flex-1 overflow-y-auto">
@@ -567,11 +617,14 @@ export default function PuppyDashboard() {
                             {meals.length === 0 && <p className="text-center text-gray-400 mt-4 text-base">No meals logged for this day.</p>}
                         </div>
                         {(!isHistoryMode || editMode) && (
-                            <button onClick={addMeal} className="button mt-2 pt-2 border-t border-white/20 bg-pink-700 hover:bg-pink-600">Add Meal</button>
+                            <div className="flex gap-2 mt-2 pt-2 border-t border-white/20">
+                                <button onClick={addMeal} className="button flex-1 bg-pink-700 hover:bg-pink-600">Add Meal Now</button>
+                                <button onClick={addCustomMeal} className="button flex-1">Add Custom Meal</button>
+                            </div>
                         )}
                     </div>
 
-                    {/* Snacks Card (UPDATED BORDER: border border-white/20) */}
+                    {/* Snacks Card (Unified Border) */}
                     <div className="flex-1 flex flex-col border border-white/20 p-2 overflow-hidden bg-black">
                         <p className="font-bold mb-2 text-center text-xl border-b border-white/20 pb-1">Snacks ({snacks.length})</p>
                         <div className="flex-1 overflow-y-auto">
