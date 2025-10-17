@@ -48,8 +48,8 @@ export default function PuppyDashboard() {
     const LON = 12.03;
 
     // Use current time for date logic to be accurate 
-    // The current time is 08:47:27 AM on Friday, October 17, 2025 (based on context)
-    const today = new Date(2025, 9, 17, 8, 47, 27); // Note: Month is 0-indexed (9 is October)
+    // The current time is 09:04:45 AM on Friday, October 17, 2025 (based on context)
+    const today = new Date(2025, 9, 17, 9, 4, 45); // Note: Month is 0-indexed (9 is October)
     const todayStr = today.toDateString();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
@@ -147,7 +147,8 @@ export default function PuppyDashboard() {
         };
 
         fetchWeather();
-        const intervalId = setInterval(fetchWeather, 600000); 
+        // FIX: Update weather every 5 minutes (300000 ms)
+        const intervalId = setInterval(fetchWeather, 300000); 
 
         return () => clearInterval(intervalId); 
     }, [API_KEY]); 
@@ -215,13 +216,25 @@ export default function PuppyDashboard() {
 
 
     // =========================================================================
-    // --- Clock & Auto-Update (Now includes Archiving) ---
+    // --- Clock Update (Every 100ms) ---
+    // =========================================================================
+    useEffect(() => {
+        // FIX: Dedicated interval for smooth second-by-second clock update
+        const t = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 100); 
+        
+        return () => clearInterval(t);
+    }, []); 
+
+    // =========================================================================
+    // --- Day Change / Archiving Check (Every 10s) ---
     // =========================================================================
     useEffect(() => {
         let lastDay = new Date().getDate();
+        // Check every 10 seconds to see if the day has changed, which is sufficient
         const t = setInterval(() => {
             const now = new Date();
-            setCurrentTime(now);
 
             if (now.getDate() !== lastDay) {
                 console.log("Day changed. Archiving previous day's data and reloading 'Today' page.");
@@ -236,11 +249,12 @@ export default function PuppyDashboard() {
                 loadHistoryDates(true); 
                 lastDay = now.getDate();
             }
-        }, 1000);
+        }, 10000); // 10 seconds
         
         return () => clearInterval(t);
     }, [loadHistoryDates, archivePreviousDay]); 
-
+    
+    
     // --- Initial History Load ---
     useEffect(() => {
         loadHistoryDates(true);
@@ -542,7 +556,6 @@ export default function PuppyDashboard() {
                     
                     {/* Left Control Group (Calendar & Edit) */}
                     <div className="flex items-center gap-1 lg:gap-4">
-                        {/* FIX: Styled Calendar button for better visibility on small screens */}
                         <button 
                             onClick={() => setIsSidebarOpen(true)} 
                             className="w-7 h-7 lg:w-10 lg:h-10 flex items-center justify-center cursor-pointer border border-yellow-400 rounded bg-white/10 hover:bg-white/20 p-0"
@@ -550,7 +563,6 @@ export default function PuppyDashboard() {
                             <CalendarDays className="text-yellow-400 w-4 h-4 lg:w-6 lg:h-6" />
                         </button>
 
-                        {/* FIX: Styled Edit button for better visibility on small screens */}
                         <button 
                             onClick={()=>setEditMode(!editMode)} 
                             className={`w-7 h-7 lg:w-10 lg:h-10 flex items-center justify-center cursor-pointer border rounded p-0 
