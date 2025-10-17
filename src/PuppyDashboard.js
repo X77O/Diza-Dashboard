@@ -48,8 +48,8 @@ export default function PuppyDashboard() {
     const LON = 12.03;
 
     // Use current time for date logic to be accurate 
-    // The current time is 10:13:42 AM on Thursday, October 17, 2025 (adjusted from previous context)
-    const today = new Date(2025, 9, 17, 10, 13, 42); // Note: Month is 0-indexed (9 is October)
+    // The current time is 10:20:32 AM on Thursday, October 17, 2025 (adjusted from current time)
+    const today = new Date(2025, 9, 17, 10, 20, 32); // Note: Month is 0-indexed (9 is October)
     const todayStr = today.toDateString();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
@@ -482,7 +482,8 @@ export default function PuppyDashboard() {
 
 
     return (
-        <div className="flex w-screen h-screen bg-black text-white overflow-hidden">
+        // KEY FIX: Using min-h-screen and style={{ height: '100dvh' }} to fix mobile viewport height issues
+        <div className="flex w-screen min-h-screen bg-black text-white overflow-hidden" style={{ height: '100dvh' }}>
             
             {/* Sidebar (History Panel) */}
             <div className={`absolute top-0 bottom-0 w-48 bg-black border-r border-white/20 z-20 
@@ -528,7 +529,6 @@ export default function PuppyDashboard() {
             </div>
 
             {/* Main content */}
-            {/* Main container is flex-col flex-1 */}
             <div className="flex flex-col flex-1 p-1 lg:p-2 gap-1 lg:gap-2"> 
                 
                 {/* Top: Date & Weather (flex-shrink-0) */}
