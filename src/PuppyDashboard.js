@@ -48,8 +48,8 @@ export default function PuppyDashboard() {
     const LON = 12.03;
 
     // Use current time for date logic to be accurate 
-    // The current time is 09:12:45 AM on Friday, October 17, 2025 (based on context)
-    const today = new Date(2025, 9, 17, 9, 12, 45); // Note: Month is 0-indexed (9 is October)
+    // The current time is 10:13:42 AM on Thursday, October 17, 2025 (adjusted from previous context)
+    const today = new Date(2025, 9, 17, 10, 13, 42); // Note: Month is 0-indexed (9 is October)
     const todayStr = today.toDateString();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
@@ -528,11 +528,10 @@ export default function PuppyDashboard() {
             </div>
 
             {/* Main content */}
-            {/* FIX: Removed unnecessary overflow-y-auto from the main content wrapper, 
-                and ensured flex-1 is used correctly to stretch and contain its children */}
+            {/* Main container is flex-col flex-1 */}
             <div className="flex flex-col flex-1 p-1 lg:p-2 gap-1 lg:gap-2"> 
                 
-                {/* Top: Date & Weather (Responsive: Side-by-side on ALL screens) */}
+                {/* Top: Date & Weather (flex-shrink-0) */}
                 <div className="flex flex-row gap-1 lg:gap-2 flex-shrink-0" style={{ height: '30vh', minHeight: '150px' }}>
                     
                     {/* Clock / Date Display */}
@@ -572,7 +571,7 @@ export default function PuppyDashboard() {
                     </div>
                 </div>
 
-                {/* Middle: Next Walk Alert / Controls (Fixed size, minimal padding) */}
+                {/* Middle: Next Walk Alert / Controls (flex-shrink-0) */}
                 <div className="flex items-center justify-between p-1 border border-white/20 text-xl bg-black flex-shrink-0">
                     
                     {/* Left Control Group (Calendar & Edit) */}
@@ -606,13 +605,11 @@ export default function PuppyDashboard() {
                     )}
                 </div>
 
-                {/* Bottom: Logs (Vertical Stack on Mobile, 3 Columns on Desktop) */}
-                {/* FIX: Added overflow-y-auto to the log wrapper to contain all logs and buttons */}
+                {/* Bottom: Logs (flex-1 and overflow-y-auto is the key) */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-1 lg:gap-2 overflow-y-auto">
                     
-                    {/* Walks Card */}
-                    {/* FIX: Added min-h-0 to allow the card to shrink correctly in a flex container */}
-                    <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px] flex-shrink-0 lg:flex-shrink-1">
+                    {/* Walks Card (flex-1 and min-h-0 is the key) */}
+                    <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px]">
                         <p className="font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0">Walks ({walks.length})</p>
                         {/* Scrollable Log List */}
                         <div className="flex-1 overflow-y-auto">
@@ -646,8 +643,7 @@ export default function PuppyDashboard() {
                     </div>
 
                     {/* Meals Card */}
-                    {/* FIX: Added min-h-0 to allow the card to shrink correctly in a flex container */}
-                    <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px] flex-shrink-0 lg:flex-shrink-1">
+                    <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px]">
                         <p className="font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0">Meals ({meals.length})</p>
                         <div className="flex-1 overflow-y-auto">
                             {meals.map((m,i)=>(
@@ -679,8 +675,7 @@ export default function PuppyDashboard() {
                     </div>
 
                     {/* Snacks Card */}
-                    {/* FIX: Added min-h-0 to allow the card to shrink correctly in a flex container */}
-                    <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px] flex-shrink-0 lg:flex-shrink-1">
+                    <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px]">
                         <p className="font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0">Snacks ({snacks.length})</p>
                         <div className="flex-1 overflow-y-auto">
                             {snacks.map((s,i)=>(
