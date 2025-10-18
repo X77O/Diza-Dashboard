@@ -47,9 +47,7 @@ export default function PuppyDashboard() {
     const LAT = 57.65;
     const LON = 12.03;
 
-    // Use current time for date logic to be accurate 
-    // The current time is 10:20:32 AM on Thursday, October 17, 2025 (adjusted from current time)
-    const today = new Date(2025, 9, 17, 10, 20, 32); // Note: Month is 0-indexed (9 is October)
+    const today = new Date();
     const todayStr = today.toDateString();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
