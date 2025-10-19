@@ -137,8 +137,8 @@ export default function PuppyDashboard() {
                 }
             });
             
+            // Only add today to the list
             currentDates.add(todayStr);
-            currentDates.add(yesterdayStr);
 
             const sortedDates = Array.from(currentDates)
                 .map(d => new Date(d))
@@ -261,6 +261,7 @@ export default function PuppyDashboard() {
             try {
                 const mainSnap = await getDoc(mainDocRef);
                 if (!mainSnap.exists()) {
+                    console.log("No 'main' document found on startup.");
                     loadHistoryDates(true);
                     return;
                 }
@@ -269,29 +270,36 @@ export default function PuppyDashboard() {
                 
                 const hasData = (mainData.walks?.length > 0) || (mainData.meals?.length > 0) || (mainData.snacks?.length > 0);
                 
-                if (hasData) {
-                    let latestTime = null;
-                    
-                    const allEntries = [
-                        ...(mainData.walks || []).map(w => w.time || w),
-                        ...(mainData.meals || []).map(m => m.time),
-                        ...(mainData.snacks || []).map(s => s.time)
-                    ].filter(t => t);
-                    
-                    if (allEntries.length > 0) {
-                        const times = allEntries.map(t => new Date(t).getTime()).filter(t => !isNaN(t));
-                        if (times.length > 0) {
-                            latestTime = new Date(Math.max(...times));
-                        }
-                    }
-                    
-                    if (latestTime && latestTime.toDateString() !== todayStr) {
-                        console.log("Found data from previous day on startup. Archiving...");
-                        await archivePreviousDay(latestTime);
+                if (!hasData) {
+                    console.log("Main document is empty, no archiving needed.");
+                    loadHistoryDates(true);
+                    return;
+                }
+                
+                // Find the date of the most recent entry
+                let latestTime = null;
+                
+                const allEntries = [
+                    ...(mainData.walks || []).map(w => w.time || w),
+                    ...(mainData.meals || []).map(m => m.time),
+                    ...(mainData.snacks || []).map(s => s.time)
+                ].filter(t => t);
+                
+                if (allEntries.length > 0) {
+                    const times = allEntries.map(t => new Date(t).getTime()).filter(t => !isNaN(t));
+                    if (times.length > 0) {
+                        latestTime = new Date(Math.max(...times));
                     }
                 }
                 
-                loadHistoryDates(true);
+                if (latestTime && latestTime.toDateString() !== todayStr) {
+                    console.log(`Found data from previous day (${latestTime.toDateString()}) on startup. Archiving...`);
+                    await archivePreviousDay(latestTime);
+                } else {
+                    console.log("Main document data is from today, no archiving needed.");
+                    loadHistoryDates(true);
+                }
+                
             } catch (error) {
                 console.error("Error checking for archive on startup:", error);
                 loadHistoryDates(true);
@@ -546,7 +554,7 @@ export default function PuppyDashboard() {
                                 setIsSidebarOpen(false);
                             }}
                         >
-                            {d === todayStr ? 'TODAY' : d === yesterdayStr ? 'YESTERDAY' : d}
+                            {d}
                         </div>
                     ))}
                     
