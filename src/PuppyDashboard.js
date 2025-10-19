@@ -308,7 +308,8 @@ export default function PuppyDashboard() {
         const isToday = dateStr === todayStr;
         
         setIsHistoryMode(!isToday);
-        setEditMode(false);
+        // Only reset edit mode when switching dates, not during refresh
+        // setEditMode(false); // REMOVED - let user control edit mode
 
         if (isToday) {
             const snap = await getDoc(mainDocRef);
@@ -342,6 +343,8 @@ export default function PuppyDashboard() {
     }, [todayStr, mainDocRef, collectionName]);
 
     useEffect(() => {
+        // Reset edit mode when switching dates
+        setEditMode(false);
         loadForDate(selectedDate);
     }, [selectedDate, loadForDate]);
 
