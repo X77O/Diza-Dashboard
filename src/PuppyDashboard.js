@@ -244,14 +244,12 @@ export default function PuppyDashboard() {
                 archivePreviousDay(previousDay); 
                 
                 setSelectedDate(now);
-                loadForDate(now); 
-                loadHistoryDates(true); 
                 lastDay = now.getDate();
             }
         }, 10000);
         
         return () => clearInterval(t);
-    }, [archivePreviousDay]); 
+    }, [archivePreviousDay, setSelectedDate]); 
     
     // =========================================================================
     // --- Initial Setup: Check for data that needs archiving on startup ---
@@ -307,7 +305,7 @@ export default function PuppyDashboard() {
         };
         
         checkAndArchiveOnStartup();
-    }, []); 
+    }, [mainDocRef, todayStr, archivePreviousDay, loadHistoryDates]); 
 
     // --- Load selected date content ---
     const loadForDate = async (date) => {
