@@ -9,16 +9,16 @@ const getWeatherEmoji = (icon) => {
     const isNight = icon.endsWith('n');
     
     // Icon codes mapping to emojis
-    if (['01d', '01n'].includes(icon)) return isNight ? '🌙' : '☀️'; // clear sky
-    if (['02d', '02n'].includes(icon)) return isNight ? '☁️' : '🌤️'; // few clouds
-    if (['03d', '03n'].includes(icon)) return '☁️'; // scattered clouds
-    if (['04d', '04n'].includes(icon)) return '🌥️'; // broken clouds
-    if (['09d', '09d'].includes(icon)) return '🌧️'; // shower rain
-    if (['10d', '10n'].includes(icon)) return '🌦️'; // rain
-    if (['11d', '11n'].includes(icon)) return '🌩️'; // thunderstorm
-    if (['13d', '13n'].includes(icon)) return '❄️'; // snow
-    if (['50d', '50n'].includes(icon)) return '🌫️'; // mist
-    return '❓'; // default
+    if (['01d', '01n'].includes(icon)) return isNight ? '🌙' : '☀️';
+    if (['02d', '02n'].includes(icon)) return isNight ? '☁️' : '🌤️';
+    if (['03d', '03n'].includes(icon)) return '☁️';
+    if (['04d', '04n'].includes(icon)) return '🌥️';
+    if (['09d', '09d'].includes(icon)) return '🌧️';
+    if (['10d', '10n'].includes(icon)) return '🌦️';
+    if (['11d', '11n'].includes(icon)) return '🌩️';
+    if (['13d', '13n'].includes(icon)) return '❄️';
+    if (['50d', '50n'].includes(icon)) return '🌫️';
+    return '❓';
 };
 
 export default function PuppyDashboard() {
@@ -47,6 +47,7 @@ export default function PuppyDashboard() {
     const LAT = 57.65;
     const LON = 12.03;
 
+    // Use actual current time for date logic
     const today = new Date();
     const todayStr = today.toDateString();
     const yesterday = new Date(today);
@@ -80,7 +81,7 @@ export default function PuppyDashboard() {
             const tb = new Date(b.time || b);
             
             const timeA = isNaN(ta.getTime()) ? 0 : ta.getTime();
-            const timeB = isNaN(tb.getTime()) ? 0 : ta.getTime();
+            const timeB = isNaN(tb.getTime()) ? 0 : tb.getTime();
             
             return timeA - timeB;
         });
@@ -89,7 +90,7 @@ export default function PuppyDashboard() {
     const getDocRefForDate = async (date) => {
         const dateKey = date.toDateString() === todayStr 
             ? 'main'
-            : date.toISOString().split('T')[0]; // Format is YYYY-MM-DD
+            : date.toISOString().split('T')[0];
             
         const docRef = doc(db, collectionName, dateKey);
         
@@ -101,59 +102,6 @@ export default function PuppyDashboard() {
         return docRef;
     };
 
-    const archivePreviousDay = useCallback(async (previousDay) => {
-        const previousDayKey = previousDay.toISOString().split('T')[0];
-        const previousDocRef = doc(db, collectionName, previousDayKey);
-        
-        const mainSnap = await getDoc(mainDocRef);
-        if (!mainSnap.exists()) return;
-
-        const mainData = mainSnap.data();
-        
-        if ((mainData.walks?.length || mainData.meals?.length || mainData.snacks?.length) && !(await getDoc(previousDocRef)).exists()) {
-            console.log(`Archiving data from 'main' to history document: ${previousDayKey}`);
-            
-            await setDoc(previousDocRef, mainData);
-
-            await setDoc(mainDocRef, { walks: [], meals: [], snacks: [] });
-
-            loadHistoryDates(true);
-        } else {
-            console.log("No data to archive or historical document already exists.");
-        }
-    }, [mainDocRef, historyCollectionRef]);
-
-
-    // =========================================================================
-    // --- Weather Data Fetching ---
-    // =========================================================================
-    useEffect(() => {
-        if (!API_KEY) {
-            console.error("OpenWeatherMap API Key is missing. Check your .env file.");
-            return;
-        }
-
-        const fetchWeather = async () => {
-            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=metric`;
-            try {
-                const response = await axios.get(url);
-                setWeatherData(response.data);
-            } catch (error) {
-                console.error("Error fetching weather data:", error);
-                setWeatherData({}); 
-            }
-        };
-
-        fetchWeather();
-        // FIX: Update weather every 5 minutes (300000 ms)
-        const intervalId = setInterval(fetchWeather, 300000); 
-
-        return () => clearInterval(intervalId); 
-    }, [API_KEY]); 
-
-    // =========================================================================
-    // --- History Loading Logic ---
-    // =========================================================================
     const loadHistoryDates = useCallback(async (isInitialLoad = true) => {
         const historyLimit = 15;
         
@@ -212,12 +160,66 @@ export default function PuppyDashboard() {
         }
     }, [historyCollectionRef, lastVisibleDate, availableDates, todayStr, yesterdayStr]); 
 
+    const archivePreviousDay = useCallback(async (previousDay) => {
+        const previousDayKey = previousDay.toISOString().split('T')[0];
+        const previousDocRef = doc(db, collectionName, previousDayKey);
+        
+        const mainSnap = await getDoc(mainDocRef);
+        if (!mainSnap.exists()) return;
+
+        const mainData = mainSnap.data();
+        
+        const hasData = (mainData.walks?.length > 0) || (mainData.meals?.length > 0) || (mainData.snacks?.length > 0);
+        
+        if (hasData) {
+            const archiveSnap = await getDoc(previousDocRef);
+            
+            if (!archiveSnap.exists()) {
+                console.log(`Archiving data from 'main' to history document: ${previousDayKey}`);
+                await setDoc(previousDocRef, mainData);
+            } else {
+                console.log(`Archive for ${previousDayKey} already exists, skipping creation.`);
+            }
+            
+            console.log("Clearing 'main' document for new day.");
+            await setDoc(mainDocRef, { walks: [], meals: [], snacks: [] });
+            
+            loadHistoryDates(true);
+        } else {
+            console.log("No data to archive.");
+        }
+    }, [mainDocRef, loadHistoryDates]);
+
+    // =========================================================================
+    // --- Weather Data Fetching ---
+    // =========================================================================
+    useEffect(() => {
+        if (!API_KEY) {
+            console.error("OpenWeatherMap API Key is missing. Check your .env file.");
+            return;
+        }
+
+        const fetchWeather = async () => {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=metric`;
+            try {
+                const response = await axios.get(url);
+                setWeatherData(response.data);
+            } catch (error) {
+                console.error("Error fetching weather data:", error);
+                setWeatherData({}); 
+            }
+        };
+
+        fetchWeather();
+        const intervalId = setInterval(fetchWeather, 300000); 
+
+        return () => clearInterval(intervalId); 
+    }, [API_KEY]); 
 
     // =========================================================================
     // --- Clock Update (Every 100ms) ---
     // =========================================================================
     useEffect(() => {
-        // FIX: Dedicated interval for smooth second-by-second clock update
         const t = setInterval(() => {
             setCurrentTime(new Date());
         }, 100); 
@@ -230,7 +232,6 @@ export default function PuppyDashboard() {
     // =========================================================================
     useEffect(() => {
         let lastDay = new Date().getDate();
-        // Check every 10 seconds to see if the day has changed, which is sufficient
         const t = setInterval(() => {
             const now = new Date();
 
@@ -247,17 +248,58 @@ export default function PuppyDashboard() {
                 loadHistoryDates(true); 
                 lastDay = now.getDate();
             }
-        }, 10000); // 10 seconds
+        }, 10000);
         
         return () => clearInterval(t);
-    }, [loadHistoryDates, archivePreviousDay]); 
+    }, [archivePreviousDay]); 
     
-    
-    // --- Initial History Load ---
+    // =========================================================================
+    // --- Initial Setup: Check for data that needs archiving on startup ---
+    // =========================================================================
     useEffect(() => {
-        loadHistoryDates(true);
-    }, [loadHistoryDates]);
-
+        const checkAndArchiveOnStartup = async () => {
+            try {
+                const mainSnap = await getDoc(mainDocRef);
+                if (!mainSnap.exists()) {
+                    loadHistoryDates(true);
+                    return;
+                }
+                
+                const mainData = mainSnap.data();
+                
+                const hasData = (mainData.walks?.length > 0) || (mainData.meals?.length > 0) || (mainData.snacks?.length > 0);
+                
+                if (hasData) {
+                    let latestTime = null;
+                    
+                    const allEntries = [
+                        ...(mainData.walks || []).map(w => w.time || w),
+                        ...(mainData.meals || []).map(m => m.time),
+                        ...(mainData.snacks || []).map(s => s.time)
+                    ].filter(t => t);
+                    
+                    if (allEntries.length > 0) {
+                        const times = allEntries.map(t => new Date(t).getTime()).filter(t => !isNaN(t));
+                        if (times.length > 0) {
+                            latestTime = new Date(Math.max(...times));
+                        }
+                    }
+                    
+                    if (latestTime && latestTime.toDateString() !== todayStr) {
+                        console.log("Found data from previous day on startup. Archiving...");
+                        await archivePreviousDay(latestTime);
+                    }
+                }
+                
+                loadHistoryDates(true);
+            } catch (error) {
+                console.error("Error checking for archive on startup:", error);
+                loadHistoryDates(true);
+            }
+        };
+        
+        checkAndArchiveOnStartup();
+    }, []); 
 
     // --- Load selected date content ---
     const loadForDate = async (date) => {
@@ -269,12 +311,10 @@ export default function PuppyDashboard() {
             const snap = await getDoc(mainDocRef);
             if (snap.exists()) {
                 const data = snap.data();
-                // FIX: Filter data first, then call setter
                 setWalks(sortByTime(data.walks || []));
                 setMeals((data.meals || []).filter(m => m.weight)); 
                 setSnacks((data.snacks || []).filter(s => s.quantity)); 
             } else {
-                 // Initialize 'main' doc if it doesn't exist
                 await setDoc(mainDocRef, { walks: [], meals: [], snacks: [] });
                 setWalks([]);
                 setMeals([]);
@@ -289,7 +329,6 @@ export default function PuppyDashboard() {
         const snap = await getDoc(dateDocRef);
         if (snap.exists()) {
             const data = snap.data();
-            // FIX: Filter data first, then call setter
             setWalks(sortByTime(data.walks || []));
             setMeals((data.meals || []).filter(m => m.weight)); 
             setSnacks((data.snacks || []).filter(s => s.quantity));
@@ -310,7 +349,6 @@ export default function PuppyDashboard() {
         const unsub = onSnapshot(mainDocRef, (snap) => {
             if (!snap.exists()) return;
             const data = snap.data();
-            // FIX: Filter data first, then call setter
             setWalks(sortByTime(data.walks || []));
             setMeals((data.meals || []).filter(m => m.weight));
             setSnacks((data.snacks || []).filter(s => s.quantity));
@@ -318,7 +356,7 @@ export default function PuppyDashboard() {
         return () => unsub();
     }, [selectedDate, todayStr]);
 
-    // --- CRUD functions (Simplified with helper function) ---
+    // --- CRUD functions ---
     const refresh = async () => loadForDate(selectedDate);
 
     const handleAction = async (updateData, isNewDoc = false) => {
@@ -330,7 +368,6 @@ export default function PuppyDashboard() {
         refresh();
     }
     
-    // --- Action Handlers ---
     const addWalk = async () => {
         const newWalk = { time: new Date().toISOString() };
         const snap = await getDoc(await getDocRefForDate(selectedDate));
@@ -385,7 +422,6 @@ export default function PuppyDashboard() {
         await handleAction({ snacks: [...current, newSnack] }, true);
     };
     
-    // FIX: Add custom snack function for consistency
     const addCustomSnack = async () => {
         const timeInput = prompt('Enter snack time (HH:mm:ss):');
         if (!timeInput) return;
@@ -478,9 +514,7 @@ export default function PuppyDashboard() {
         return hours >= 3;
     };
 
-
     return (
-        // KEY FIX: Using min-h-screen and style={{ height: '100dvh' }} to fix mobile viewport height issues
         <div className="flex w-screen min-h-screen bg-black text-white overflow-hidden" style={{ height: '100dvh' }}>
             
             {/* Sidebar (History Panel) */}
@@ -529,7 +563,7 @@ export default function PuppyDashboard() {
             {/* Main content */}
             <div className="flex flex-col flex-1 p-1 lg:p-2 gap-1 lg:gap-2"> 
                 
-                {/* Top: Date & Weather (flex-shrink-0) */}
+                {/* Top: Date & Weather */}
                 <div className="flex flex-row gap-1 lg:gap-2 flex-shrink-0" style={{ height: '30vh', minHeight: '150px' }}>
                     
                     {/* Clock / Date Display */}
@@ -550,7 +584,7 @@ export default function PuppyDashboard() {
                         )}
                     </div>
                     
-                    {/* Weather Card (Mölndal) */}
+                    {/* Weather Card */}
                     <div className="flex flex-col justify-center border border-white/20 p-1 lg:p-4 text-center bg-black min-h-0 basis-1/2">
                         <p className="text-[clamp(0.7rem,3vw,1.5rem)] mb-0.5 lg:mb-2 font-semibold leading-tight">Mölndal, SE</p>
                         <div className="flex items-center justify-center gap-1 lg:gap-4 mb-0.5 lg:mb-2">
@@ -562,17 +596,14 @@ export default function PuppyDashboard() {
                             </p>
                         </div>
                         {weatherData && weatherData.weather && <p className="capitalize text-[clamp(0.6rem,2.5vw,1.5rem)] text-gray-300 leading-tight">{weatherData.weather[0].description}</p>}
-                        
                         {weatherData && weatherData.main && <p className="text-[clamp(0.6rem,2vw,1.2rem)] text-gray-400 mt-1 leading-tight">H: {weatherData.main.humidity}% | W: {weatherData.wind.speed} m/s</p>}
-                        
                         {weatherData === {} && <p className="text-red-400 text-xs">Error</p>}
                     </div>
                 </div>
 
-                {/* Middle: Next Walk Alert / Controls (flex-shrink-0) */}
+                {/* Middle: Controls */}
                 <div className="flex items-center justify-between p-1 border border-white/20 text-xl bg-black flex-shrink-0">
                     
-                    {/* Left Control Group (Calendar & Edit) */}
                     <div className="flex items-center gap-1 lg:gap-4">
                         <button 
                             onClick={() => setIsSidebarOpen(true)} 
@@ -597,19 +628,17 @@ export default function PuppyDashboard() {
                         </p>
                     </div>
                     
-                    {/* Right Control Group (Reset Button) */}
                     {(!isHistoryMode && walks.length > 0) && (
                         <button onClick={resetDay} className="button border-red-500 text-red-400 hover:bg-red-900/50 text-xs p-1 lg:text-sm">Reset</button>
                     )}
                 </div>
 
-                {/* Bottom: Logs (flex-1 and overflow-y-auto is the key) */}
+                {/* Bottom: Logs */}
                 <div className="flex-1 flex flex-col lg:flex-row gap-1 lg:gap-2 overflow-y-auto">
                     
-                    {/* Walks Card (flex-1 and min-h-0 is the key) */}
+                    {/* Walks Card */}
                     <div className="flex-1 flex flex-col border border-white/20 p-1 lg:p-2 overflow-hidden bg-black min-h-0 lg:min-h-[300px]">
                         <p className="font-bold mb-1 text-center text-sm lg:text-xl border-b border-white/20 pb-0.5 flex-shrink-0">Walks ({walks.length})</p>
-                        {/* Scrollable Log List */}
                         <div className="flex-1 overflow-y-auto">
                             {walks.map((w,i)=>(
                                 <div key={i} className="flex items-center justify-between mb-0.5 text-sm lg:text-base p-0.5 border-b border-white/10 last:border-b-0">
@@ -631,7 +660,6 @@ export default function PuppyDashboard() {
                             ))}
                             {walks.length === 0 && <p className="text-center text-gray-400 mt-1 text-[0.6rem] lg:text-base">No walks logged for this day.</p>}
                         </div>
-                        {/* Buttons (Side-by-side on all screens) */}
                         {(!isHistoryMode || editMode) && (
                             <div className="flex gap-0.5 mt-1 pt-1 border-t border-white/20 flex-shrink-0">
                                 <button onClick={addWalk} className="button flex-1 bg-green-700 hover:bg-green-600 text-[0.6rem] lg:text-sm p-1">Add Walk Now</button>
@@ -696,7 +724,6 @@ export default function PuppyDashboard() {
                             ))}
                             {snacks.length === 0 && <p className="text-center text-gray-400 mt-1 text-[0.6rem] lg:text-base">No snacks logged for this day.</p>}
                         </div>
-                        {/* Two buttons for consistency across all cards */}
                         {(!isHistoryMode || editMode) && (
                             <div className="flex gap-0.5 mt-1 pt-1 border-t border-white/20 flex-shrink-0">
                                 <button onClick={addSnack} className="button flex-1 bg-orange-700 hover:bg-orange-600 text-[0.6rem] lg:text-sm p-1">Add Snack Now</button>
