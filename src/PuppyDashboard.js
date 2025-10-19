@@ -373,7 +373,7 @@ export default function PuppyDashboard() {
             unsub();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate, todayStr]);
+    }, [selectedDate.getTime(), todayStr]);
 
     // --- CRUD functions ---
     const refresh = async () => loadForDate(selectedDate);
