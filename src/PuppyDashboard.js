@@ -304,11 +304,13 @@ export default function PuppyDashboard() {
     }, []); 
 
     const loadForDate = useCallback(async (date) => {
-        setEditMode(false);
         const dateStr = date.toDateString();
+        const isToday = dateStr === todayStr;
+        
+        setIsHistoryMode(!isToday);
+        setEditMode(false);
 
-        if (dateStr === todayStr) {
-            setIsHistoryMode(false);
+        if (isToday) {
             const snap = await getDoc(mainDocRef);
             if (snap.exists()) {
                 const data = snap.data();
@@ -324,7 +326,6 @@ export default function PuppyDashboard() {
             return;
         }
 
-        setIsHistoryMode(true);
         const dateKey = date.toISOString().split('T')[0];
         const dateDocRef = doc(db, collectionName, dateKey);
         const snap = await getDoc(dateDocRef);
@@ -347,6 +348,7 @@ export default function PuppyDashboard() {
     // --- Live sync for today ---
     useEffect(() => {
         if (selectedDate.toDateString() !== todayStr) return;
+        
         const unsub = onSnapshot(mainDocRef, (snap) => {
             if (!snap.exists()) return;
             const data = snap.data();
@@ -356,7 +358,7 @@ export default function PuppyDashboard() {
         });
         return () => unsub();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate, todayStr]);
+    }, [selectedDate.toDateString(), todayStr]);
 
     // --- CRUD functions ---
     const refresh = async () => loadForDate(selectedDate);
