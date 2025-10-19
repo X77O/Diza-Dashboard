@@ -348,20 +348,32 @@ export default function PuppyDashboard() {
         loadForDate(selectedDate);
     }, [selectedDate, loadForDate]);
 
-    // --- Live sync for today ---
+    // --- Live sync for today ONLY ---
     useEffect(() => {
-        if (selectedDate.toDateString() !== todayStr) return;
+        const dateStr = selectedDate.toDateString();
         
+        // Only setup live sync if we're viewing today
+        if (dateStr !== todayStr) {
+            console.log(`Not setting up live sync - viewing ${dateStr}, today is ${todayStr}`);
+            return;
+        }
+        
+        console.log('Setting up live sync for today');
         const unsub = onSnapshot(mainDocRef, (snap) => {
+            console.log('Live sync triggered');
             if (!snap.exists()) return;
             const data = snap.data();
             setWalks(sortByTime(data.walks || []));
             setMeals((data.meals || []).filter(m => m.weight));
             setSnacks((data.snacks || []).filter(s => s.quantity));
         });
-        return () => unsub();
+        
+        return () => {
+            console.log('Cleaning up live sync');
+            unsub();
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate.toDateString(), todayStr]);
+    }, [selectedDate, todayStr]);
 
     // --- CRUD functions ---
     const refresh = async () => loadForDate(selectedDate);
