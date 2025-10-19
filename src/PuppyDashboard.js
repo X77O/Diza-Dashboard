@@ -172,14 +172,9 @@ export default function PuppyDashboard() {
         const hasData = (mainData.walks?.length > 0) || (mainData.meals?.length > 0) || (mainData.snacks?.length > 0);
         
         if (hasData) {
-            const archiveSnap = await getDoc(previousDocRef);
-            
-            if (!archiveSnap.exists()) {
-                console.log(`Archiving data from 'main' to history document: ${previousDayKey}`);
-                await setDoc(previousDocRef, mainData);
-            } else {
-                console.log(`Archive for ${previousDayKey} already exists, skipping creation.`);
-            }
+            // Always save/overwrite the archive to ensure we have the latest data
+            console.log(`Archiving data from 'main' to history document: ${previousDayKey}`);
+            await setDoc(previousDocRef, mainData);
             
             console.log("Clearing 'main' document for new day.");
             await setDoc(mainDocRef, { walks: [], meals: [], snacks: [] });
@@ -260,7 +255,7 @@ export default function PuppyDashboard() {
                 const mainSnap = await getDoc(mainDocRef);
                 if (!mainSnap.exists()) {
                     console.log("No 'main' document found on startup.");
-                    loadHistoryDates(true);
+                    await loadHistoryDates(true);
                     return;
                 }
                 
@@ -270,7 +265,7 @@ export default function PuppyDashboard() {
                 
                 if (!hasData) {
                     console.log("Main document is empty, no archiving needed.");
-                    loadHistoryDates(true);
+                    await loadHistoryDates(true);
                     return;
                 }
                 
@@ -295,20 +290,20 @@ export default function PuppyDashboard() {
                     await archivePreviousDay(latestTime);
                 } else {
                     console.log("Main document data is from today, no archiving needed.");
-                    loadHistoryDates(true);
+                    await loadHistoryDates(true);
                 }
                 
             } catch (error) {
                 console.error("Error checking for archive on startup:", error);
-                loadHistoryDates(true);
+                await loadHistoryDates(true);
             }
         };
         
         checkAndArchiveOnStartup();
-    }, [mainDocRef, todayStr, archivePreviousDay, loadHistoryDates]); 
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); 
 
-    // --- Load selected date content ---
-    const loadForDate = async (date) => {
+    const loadForDate = useCallback(async (date) => {
         setEditMode(false);
         const dateStr = date.toDateString();
 
@@ -343,11 +338,11 @@ export default function PuppyDashboard() {
             setMeals([]);
             setSnacks([]);
         }
-    };
+    }, [todayStr, mainDocRef, collectionName]);
 
     useEffect(() => {
         loadForDate(selectedDate);
-    }, [selectedDate]);
+    }, [selectedDate, loadForDate]);
 
     // --- Live sync for today ---
     useEffect(() => {
@@ -360,6 +355,7 @@ export default function PuppyDashboard() {
             setSnacks((data.snacks || []).filter(s => s.quantity));
         });
         return () => unsub();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, todayStr]);
 
     // --- CRUD functions ---
