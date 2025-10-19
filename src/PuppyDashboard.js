@@ -33,6 +33,7 @@ export default function PuppyDashboard() {
     const [hasMoreHistory, setHasMoreHistory] = useState(true);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDateStr, setSelectedDateStr] = useState(new Date().toDateString());
     const [isHistoryMode, setIsHistoryMode] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -346,15 +347,14 @@ export default function PuppyDashboard() {
         // Reset edit mode when switching dates
         setEditMode(false);
         loadForDate(selectedDate);
+        setSelectedDateStr(selectedDate.toDateString());
     }, [selectedDate, loadForDate]);
 
     // --- Live sync for today ONLY ---
     useEffect(() => {
-        const dateStr = selectedDate.toDateString();
-        
         // Only setup live sync if we're viewing today
-        if (dateStr !== todayStr) {
-            console.log(`Not setting up live sync - viewing ${dateStr}, today is ${todayStr}`);
+        if (selectedDateStr !== todayStr) {
+            console.log(`Not setting up live sync - viewing ${selectedDateStr}, today is ${todayStr}`);
             return;
         }
         
@@ -373,7 +373,7 @@ export default function PuppyDashboard() {
             unsub();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate.getTime(), todayStr]);
+    }, [selectedDateStr, todayStr]);
 
     // --- CRUD functions ---
     const refresh = async () => loadForDate(selectedDate);
