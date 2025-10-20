@@ -4,6 +4,17 @@ import { Utensils, Bone, CalendarDays, PawPrint, Edit } from 'lucide-react';
 import { db } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, collection as firestoreCollection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
 
+
+// Helper: consistent YYYY-MM-DD formatting for Firestore document keys
+const formatDateToKey = (date) => {
+  if (!(date instanceof Date)) date = new Date(date);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+
 // Helper function to map OpenWeatherMap icons to weather emojis, with night mode check
 const getWeatherEmoji = (icon) => {
     const isNight = icon.endsWith('n');
