@@ -91,7 +91,7 @@ export default function PuppyDashboard() {
     const getDocRefForDate = async (date) => {
         const dateKey = date.toDateString() === todayStr 
             ? 'main'
-            : formatDateToKey(date); // Use helper function for consistent formatting
+            : date.toISOString().split('T')[0];
             
         const docRef = doc(db, collectionName, dateKey);
         
@@ -101,14 +101,6 @@ export default function PuppyDashboard() {
         }
         
         return docRef;
-    };
-    
-    // Helper to format date to YYYY-MM-DD consistently
-    const formatDateToKey = (date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
     };
 
     const loadHistoryDates = useCallback(async (isInitialLoad = true) => {
@@ -170,7 +162,7 @@ export default function PuppyDashboard() {
     }, [historyCollectionRef, lastVisibleDate, availableDates, todayStr, yesterdayStr]); 
 
     const archivePreviousDay = useCallback(async (previousDay) => {
-        const previousDayKey = formatDateToKey(previousDay);
+        const previousDayKey = previousDay.toISOString().split('T')[0];
         const previousDocRef = doc(db, collectionName, previousDayKey);
         
         const mainSnap = await getDoc(mainDocRef);
@@ -336,7 +328,7 @@ export default function PuppyDashboard() {
             return;
         }
 
-        const dateKey = date.toISOString().split('T')[0];
+        const dateKey = formatDateToKey(date);
         const dateDocRef = doc(db, collectionName, dateKey);
         const snap = await getDoc(dateDocRef);
         if (snap.exists()) {
@@ -352,25 +344,23 @@ export default function PuppyDashboard() {
     }, [todayStr, mainDocRef, collectionName]);
 
     useEffect(() => {
-        const newDateStr = selectedDate.toDateString();
-        
-        // Only update if the date string actually changed
-        if (newDateStr !== selectedDateStr) {
-            setEditMode(false);
-            setSelectedDateStr(newDateStr);
-        }
-        
+        // Reset edit mode when switching dates
+        setEditMode(false);
         loadForDate(selectedDate);
-    }, [selectedDate, selectedDateStr, loadForDate]);
+        setSelectedDateStr(selectedDate.toDateString());
+    }, [selectedDate, loadForDate]);
 
     // --- Live sync for today ONLY ---
     useEffect(() => {
         // Only setup live sync if we're viewing today
         if (selectedDateStr !== todayStr) {
+            console.log(`Not setting up live sync - viewing ${selectedDateStr}, today is ${todayStr}`);
             return;
         }
         
+        console.log('Setting up live sync for today');
         const unsub = onSnapshot(mainDocRef, (snap) => {
+            console.log('Live sync triggered');
             if (!snap.exists()) return;
             const data = snap.data();
             setWalks(sortByTime(data.walks || []));
@@ -379,6 +369,7 @@ export default function PuppyDashboard() {
         });
         
         return () => {
+            console.log('Cleaning up live sync');
             unsub();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
