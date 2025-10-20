@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Diza-Dashboard/static/css/main.98a50908.css",
-    "main.js": "/Diza-Dashboard/static/js/main.afaf0d1a.js",
+    "main.js": "/Diza-Dashboard/static/js/main.1ef7ded9.js",
     "static/js/453.aa56ee78.chunk.js": "/Diza-Dashboard/static/js/453.aa56ee78.chunk.js",
     "index.html": "/Diza-Dashboard/index.html",
     "main.98a50908.css.map": "/Diza-Dashboard/static/css/main.98a50908.css.map",
-    "main.afaf0d1a.js.map": "/Diza-Dashboard/static/js/main.afaf0d1a.js.map",
+    "main.1ef7ded9.js.map": "/Diza-Dashboard/static/js/main.1ef7ded9.js.map",
     "453.aa56ee78.chunk.js.map": "/Diza-Dashboard/static/js/453.aa56ee78.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.98a50908.css",
-    "static/js/main.afaf0d1a.js"
+    "static/js/main.1ef7ded9.js"
   ]
 }
