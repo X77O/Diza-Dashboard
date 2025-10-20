@@ -91,7 +91,7 @@ export default function PuppyDashboard() {
     const getDocRefForDate = async (date) => {
         const dateKey = date.toDateString() === todayStr 
             ? 'main'
-            : date.toISOString().split('T')[0];
+            : formatDateToKey(date); // Use helper function for consistent formatting
             
         const docRef = doc(db, collectionName, dateKey);
         
@@ -101,6 +101,14 @@ export default function PuppyDashboard() {
         }
         
         return docRef;
+    };
+    
+    // Helper to format date to YYYY-MM-DD consistently
+    const formatDateToKey = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     const loadHistoryDates = useCallback(async (isInitialLoad = true) => {
@@ -162,7 +170,7 @@ export default function PuppyDashboard() {
     }, [historyCollectionRef, lastVisibleDate, availableDates, todayStr, yesterdayStr]); 
 
     const archivePreviousDay = useCallback(async (previousDay) => {
-        const previousDayKey = previousDay.toISOString().split('T')[0];
+        const previousDayKey = formatDateToKey(previousDay);
         const previousDocRef = doc(db, collectionName, previousDayKey);
         
         const mainSnap = await getDoc(mainDocRef);
@@ -310,8 +318,7 @@ export default function PuppyDashboard() {
         
         setIsHistoryMode(!isToday);
         // Only reset edit mode when switching dates, not during refresh
-        // // setEditMode(false); // removed to prevent edit mode reset
- // REMOVED - let user control edit mode
+        // setEditMode(false); // REMOVED - let user control edit mode
 
         if (isToday) {
             const snap = await getDoc(mainDocRef);
@@ -345,24 +352,25 @@ export default function PuppyDashboard() {
     }, [todayStr, mainDocRef, collectionName]);
 
     useEffect(() => {
-        // Reset edit mode when switching dates
-        // setEditMode(false); // removed to prevent edit mode reset
-
+        const newDateStr = selectedDate.toDateString();
+        
+        // Only update if the date string actually changed
+        if (newDateStr !== selectedDateStr) {
+            setEditMode(false);
+            setSelectedDateStr(newDateStr);
+        }
+        
         loadForDate(selectedDate);
-        setSelectedDateStr(selectedDate.toDateString());
-    }, [selectedDate, loadForDate]);
+    }, [selectedDate, selectedDateStr, loadForDate]);
 
     // --- Live sync for today ONLY ---
     useEffect(() => {
         // Only setup live sync if we're viewing today
         if (selectedDateStr !== todayStr) {
-            console.log(`Not setting up live sync - viewing ${selectedDateStr}, today is ${todayStr}`);
             return;
         }
         
-        console.log('Setting up live sync for today');
         const unsub = onSnapshot(mainDocRef, (snap) => {
-            console.log('Live sync triggered');
             if (!snap.exists()) return;
             const data = snap.data();
             setWalks(sortByTime(data.walks || []));
@@ -371,7 +379,6 @@ export default function PuppyDashboard() {
         });
         
         return () => {
-            console.log('Cleaning up live sync');
             unsub();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
